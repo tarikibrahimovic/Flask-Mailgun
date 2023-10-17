@@ -1,14 +1,18 @@
+import os
 import random
 
+import requests
 from flask import jsonify
 from flask.views import MethodView
 from flask_smorest import Blueprint
 from passlib.hash import pbkdf2_sha256
 from flask_smorest import abort
+from flask import current_app
 
 import models
 from schemas import RegisterSchema, PlainUserSchema, VerifySchema
 from db import db
+from tasks import send_simple_message
 
 blp = Blueprint('Users', __name__, description='Operations on users')
 
@@ -28,6 +32,10 @@ class User(MethodView):
         try:
             db.session.add(user)
             db.session.commit()
+
+            current_app.queue.enqueue(send_simple_message, data['email'], "Verification code",
+                                      f"Your verification code is {random_number}")
+
         except Exception as e:
             abort(500, message=str(e))
 

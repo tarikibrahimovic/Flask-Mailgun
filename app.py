@@ -6,14 +6,19 @@ from db import db
 import os
 from dotenv import load_dotenv
 from resources.user import blp as user_blp
+import redis
+from rq import Queue
 
 app = Flask(__name__)
 migrate = Migrate(app, db)
 
 load_dotenv()
 
-database_url = os.getenv('DATABASE_URL')
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+connection = redis.from_url(
+    os.getenv('REDIS_URL')
+)
+app.queue = Queue("emails", connection=connection)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # silence the deprecation warning
 
 db.init_app(app)
